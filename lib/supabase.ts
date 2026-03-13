@@ -1,10 +1,32 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let supabase: ReturnType<typeof createSupabaseClient> | null = null;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Supabase credentials missing");
-}
+export const getSupabase = () => {
+  if (typeof window === "undefined") return null;
+  
+  if (!supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!url || !key) {
+      console.error("Missing Supabase credentials");
+      return null;
+    }
+    
+    supabase = createSupabaseClient(url, key);
+  }
+  
+  return supabase;
+};
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// For pages that need it at module level, export a placeholder
+export const supabase = {
+  auth: {
+    getSession: async () => getSupabase()?.auth.getSession() || { data: {} },
+    signInWithPassword: async (creds: any) => getSupabase()?.auth.signInWithPassword(creds) || { error: {} },
+    signUp: async (creds: any) => getSupabase()?.auth.signUp(creds) || { error: {} },
+    signOut: async () => getSupabase()?.auth.signOut() || { error: {} },
+  },
+  from: (table: string) => getSupabase()?.from(table) || { select: () => {} },
+} as any;
