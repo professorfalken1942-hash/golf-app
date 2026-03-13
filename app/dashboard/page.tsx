@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -13,6 +14,7 @@ interface Round {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +23,7 @@ export default function Dashboard() {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        window.location.href = "/login";
+        router.push("/login");
         return;
       }
       setUser(data.session.user);
@@ -29,7 +31,7 @@ export default function Dashboard() {
     };
 
     checkAuth();
-  }, []);
+  }, [router]);
 
   const fetchRounds = async (userId: string) => {
     const { data, error } = await supabase
