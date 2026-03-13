@@ -20,41 +20,40 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.push("/login");
-        return;
+    const init = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          router.push("/login");
+          return;
+        }
+        setUser(data.session.user);
+
+        const { data: roundsData } = await supabase
+          .from("rounds")
+          .select("id, course_name, date, total_strokes, status")
+          .eq("user_id", data.session.user.id)
+          .order("date", { ascending: false });
+
+        if (roundsData) setRounds(roundsData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-      setUser(data.session.user);
-      fetchRounds(data.session.user.id);
     };
 
-    checkAuth();
+    init();
   }, [router]);
 
-  const fetchRounds = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("rounds")
-      .select("id, course_name, date, total_strokes, status")
-      .eq("user_id", userId)
-      .order("date", { ascending: false });
-
-    if (!error && data) {
-      setRounds(data);
-    }
-    setLoading(false);
-  };
-
-  const startNewRound = async () => {
-    window.location.href = "/new-round";
+  const startNewRound = () => {
+    router.push("/new-round");
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Nav */}
       <nav className="border-b border-[#e8e8e6] py-4 px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-2xl font-bold text-[#1d7c2f]">
@@ -63,7 +62,7 @@ export default function Dashboard() {
           <button
             onClick={async () => {
               await supabase.auth.signOut();
-              window.location.href = "/";
+              router.push("/");
             }}
             className="text-sm font-medium text-[#6b6b6b] hover:text-[#1d7c2f]"
           >
@@ -72,7 +71,6 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Dashboard */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         <div className="flex items-center justify-between mb-12">
           <div>
@@ -87,7 +85,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Recent Rounds */}
         <div className="bg-[#f9f9f7] rounded border border-[#e8e8e6] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#e8e8e6]">
             <h2 className="text-lg font-bold text-[#1d7c2f]">Recent Rounds</h2>
